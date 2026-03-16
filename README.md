@@ -1,11 +1,13 @@
 # Investigative QC Omics
 
-## Computational investigative quality control detects hidden technical artifacts 
-## that standard omics batch correction misses
+## A computational investigative quality control framework for omics detecting hidden batch artifacts beyond the analytical laboratory
 
-This repository provides an **investigative quality control (QC) framework for omics data** 
+This repository provides R code used to develop and validate an 
+**investigative quality control (QC) framework for omics data** 
 designed to detect hidden laboratory artifacts and batch effects that may generate data 
-structure indistinguishable from genuine biological signals. The method combines UMAP 
+structure indistinguishable from genuine biological signals. 
+
+The method combines UMAP 
 projection, Ward's hierarchical clustering, Voronoi cell visualization, and supervised 
 random forest classification to systematically identify anomalously projected samples and 
 test whether observed data structure reflects the study hypothesis or technical workflow 
@@ -250,8 +252,7 @@ CC-BY 4.0
 
 If you use this code, concept, or framework in your work, please cite:
 
-Lotsch J, Hahnefeld L, Geisslinger G, Himmelspach A, and Kringel D. 
-Computational investigative quality control detects hidden technical artifacts 
-that standard omics batch correction misses. 2026 (in preparation).
+Lötsch J, Hahnefeld L, Geisslinger G, Himmelspach A, and Kringel D. 
+A computational investigative quality control framework for omics detecting hidden batch artifacts beyond the analytical laboratory. 2026 (in preparation).
 
 
