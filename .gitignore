@@ -9,7 +9,6 @@ lipid_results
 *OLD*
 *.svg
 !golfballs_combined_plot.svg
-*.csv
 *.png
 *workspace*
 golf*
@@ -18,6 +17,5 @@ golf*
 *.tif*
 lipid_validation2*
 lipid_validation1t*
-*.svg
 */
 create_sample_files.R

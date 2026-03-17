@@ -453,7 +453,7 @@ perform_supervised_classification <- function(X, Y,
 
     # --- Extract variables' importance ---
 
-    all_rf_var_imps[[actual_class_name]] <- var_imp_rf_cv <- do.call(cbind, lapply(cv_res, "[[", "var_importance_rf"))
+    all_rf_var_imps[[actual_class_name]] <- do.call(cbind, lapply(cv_res, "[[", "var_importance_rf"))
     all_svm_var_imps[[actual_class_name]] <- do.call(cbind, lapply(cv_res, "[[", "var_importance_svm"))
   }
 

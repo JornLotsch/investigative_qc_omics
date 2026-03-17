@@ -60,7 +60,7 @@ The code is organized in a modular hierarchy:
 ```
 Example Scripts (*_run.R)
     ↓
-Core Analysis Functions (umap_ward_investigative_qc*.R)
+Core Analysis Functions (umap_ward_misclassification_analysis*.R)
     ↓
 Utility Functions (prepare_dataset.R, perform_*.R, plot_*.R)
 ```
@@ -70,24 +70,27 @@ Utility Functions (prepare_dataset.R, perform_*.R, plot_*.R)
 The core computational functions automatically load their required libraries:
 
 - **`prepare_dataset.R`**: Data standardization and preprocessing
-- **`perform_umap_projection.R`**: UMAP dimensionality reduction 
+- **`perform_umap_projection.R`**: UMAP dimensionality reduction
   (requires: `umap`)
-- **`perform_ward_clustering.R`**: Hierarchical clustering with optimization 
+- **`perform_ward_clustering.R`**: Hierarchical clustering with optimization
   (requires: `stats::hclust`, `clue::solve_LSAP`)
-- **`plot_umap_with_voronoi.R`**: Voronoi tessellation visualization 
+- **`plot_umap_with_voronoi.R`**: Voronoi tessellation visualization
   (requires: `ggplot2`, `ggrepel`, `deldir`)
-- **`plot_anomaly_heatmap.R`**: Anomalously projected sample heatmap 
+- **`plot_misclassification_heatmap.R`**: Anomalously projected sample heatmap
   (requires: `ggplot2`, `tidyr`, `scales`)
-- **`plot_classification_stability_heatmap.R`**: Classification stability 
+- **`perform_supervised_classification.R`**: Supervised classification with random forest
+  and SVM, including hyperparameter tuning and variable importance extraction
+  (requires: `caret`, `randomForest`, `parallel`, `pbmcapply`)
+- **`plot_classification_stability_heatmap.R`**: Classification stability
   visualization (requires: `ggplot2`, `tidyr`, `scales`, `grid`)
 
 ### Core Method Functions
 
-#### `umap_ward_investigative_qc()` — **Main QC Framework Function**
+#### `umap_ward_misclassification_analysis()` — **Main QC Framework Function**
 
-**Description**: Combines UMAP projection, Ward hierarchical clustering, Voronoi 
-visualization, and anomaly detection to identify samples whose cluster assignment 
-contradicts their known class label and data structure inconsistent with the study 
+**Description**: Combines UMAP projection, Ward hierarchical clustering, Voronoi
+visualization, and anomaly detection to identify samples whose cluster assignment
+contradicts their known class label and data structure inconsistent with the study
 hypothesis.
 
 **Key Parameters**:
@@ -103,30 +106,33 @@ hypothesis.
 - `{file_prefix}_combined.{format}`: Combined visualization
 - `{file_prefix}_anomalous_samples.csv`: Anomalously projected samples, if any
 
-#### `perform_supervised_classification()` — **Artifact Detection via Random Forest**
+#### `perform_supervised_classification()` — **Supervised Artifact Detection**
 
-**Description**: Tests multiple alternative hypotheses using random forest classifiers 
-with hyperparameter tuning, comparing balanced accuracy across biological targets versus 
-technical groupings including batch identifiers, processing dates, and projection-derived 
-clusters.
+**Description**: Tests multiple alternative hypotheses using random forest and SVM
+classifiers with hyperparameter tuning and variable importance extraction, comparing
+balanced accuracy across biological targets versus technical groupings including batch
+identifiers, processing dates, and projection-derived clusters. SVM may fail to
+converge for datasets with very small class sizes.
 
 **Key Parameters**:
 - `X`: Predictor features
 - `Y`: Target variables to test (alternative hypotheses)
-- `n_iter`: Resampling iterations (100 in the paper)
+- `n_iter`: Resampling iterations
 - `training_size`: Train/test ratio (default: 0.67)
 
-**Returns**: Median balanced accuracy with 95% confidence intervals for each 
-hypothesis tested.
+**Returns**: Median balanced accuracy with 95% confidence intervals and variable
+importance scores for each hypothesis tested.
 
-**Batch validation**: Tests batch detection sensitivity across graded technical 
-variation (10% to 100% CV).
+**Feature Importance**: Random forest permutation importance scores are extracted across
+resampling iterations. Recursive cABC analysis is applied to median importance values to
+identify the A-set of most informative features for each classification target.
 
 ### Supplementary Functions
 
-**`umap_ward_investigative_qc_multi()`**: Optional multi-target extension.  
-**`plot_classification_stability_heatmap()`**: Optional visualization of 
-classification stability across resampling iterations.
+**`umap_ward_misclassification_analysis_multi()`**: Multi-target extension for
+analyzing multiple metadata variables simultaneously.
+**`plot_classification_stability_heatmap()`**: Visualization of classification
+stability across resampling iterations.
 
 ## Usage Examples
 
@@ -138,7 +144,7 @@ sample_metadata <- read.csv("sample_metadata.csv")
 sample_types <- sample_metadata$SampleType
 
 # Run the analysis
-results <- umap_ward_investigative_qc(
+results <- umap_ward_misclassification_analysis(
   data = lipid_profiles,
   target = sample_types,
   labels = sample_metadata$SampleID,
@@ -164,60 +170,17 @@ if (nrow(results$anomalous_samples) > 0) {
 This repository includes example R scripts implementing the analyses described 
 in the paper.
 
-### Publication Case Study
+**`lipid_case_data_run.R`**: Case study on real lipidomics data (psoriatic arthritis
+patients versus controls) demonstrating detection of a hidden batch effect that survived
+all standard quality control procedures. Reproduces the primary case study described in
+the paper.
 
-Case study on real lipidomics data (psoriatic arthritis patients versus controls) 
-demonstrating detection of a hidden batch effect of extreme magnitude that survived 
-all standard quality control procedures. Shows:
+**`lipid_validation_data_run.R`**: Validation pipeline testing framework sensitivity
+to batch effects of graded magnitude using simulated technical batches on a
+batch-effect-free reference lipidomics dataset.
 
-- UMAP projection with Voronoi tessellation visualization
-- Ward hierarchical clustering
-- Identification of anomalously projected samples
-- Random forest supervised classification testing alternative hypotheses including 
-  study groups, projection-derived clusters, batch identifiers, and processing dates
-- How supervised classifiers revealed that batch effects rather than biological 
-  differences dominated the data structure
-- Variable importance analysis with recursive cABC selection
-- Hyperparameter tuning for random forest classifiers (mtry, ntree)
-
-This script reproduces the primary case study described in the paper.
-
-### Method Validation
-
-**`lipid_validation_data_run.R`**: Full validation pipeline on a batch-effect-free 
-reference dataset of 403 healthy controls across 39 serum lipid mediators from a 
-multiple sclerosis biomarker study. Tests framework sensitivity across five batch 
-effect magnitudes (original, weak 10% CV, medium 20% CV, strong 30% CV, extreme 
-100% CV) using simulated technical batches combining batch-day drift and run-order 
-signal suppression. Demonstrates:
-
-- Unsupervised UMAP and Ward clustering batch detection index (40.2% to 24.1%)
-- Supervised random forest balanced accuracy scaling from 0.51 to 0.86
-- Realistic batch simulation matching the range of pre-normalization technical 
-  errors reported in large-scale lipidomics studies (17.5 to 34.1% RSD; 
-  Fan et al. 2019)
-
-### Demonstration Examples
-
-**`golfball_dataset_run.R`**: Artificial dataset with concentric spherical structure 
-demonstrating the visualization approach on synthetic data with fully known structure. 
-Useful for understanding framework behavior before applying to real data. Output 
-includes a combined visualization showing:
-
-- Left panel: UMAP projection with Voronoi tessellation colored by cluster assignments 
-  (for Voronoi tessellation plot, cite Lotsch J and Kringel D (2026). Voronoi 
-  tessellation as a complement or replacement for confidence ellipses in the 
-  visualization of data projection and clustering results. PLoS One (in revision))
-- Right panel: Anomalously projected sample heatmap comparing prior class assignments 
-  with Ward-assigned clusters
-
-![Golfball UMAP Analysis Results](golfballs_combined_plot.svg)
-
-**`example_run.R`**: Simplified introductory example showing the basic workflow with 
-minimal configuration. Recommended starting point before applying to real data.
-
-**`create_sample_files.R`**: Generates synthetic lipidomics data for testing and 
-learning purposes.
+**`example_run.R`**: Simplified introductory example showing the basic workflow.
+Recommended starting point before applying to real data.
 
 ## Dependencies
 
