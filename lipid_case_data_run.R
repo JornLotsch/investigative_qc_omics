@@ -352,7 +352,7 @@ message("\n=== Supervised Classification Analysis ===")
 SEED <- 42
 training_size <- 0.67
 n_iterations <- 100
-RF_only_plotted <- TRUE
+RF_only_plotted <- FALSE
 n_important_vars <- 10
 min_vars_4_ABC <- 3
 show_relevant_vars_default <- TRUE
@@ -361,40 +361,52 @@ min_class_size <- 3
 remove_ltx_case_targets = TRUE
 
 supervised_results <- lapply(c(FALSE, TRUE), function(permute_data) {
-  lapply(c(FALSE, TRUE), function(controls_only) {
-
+  lapply(c("all", "controls_only", "patients_only"), function(sample_group) {
+    
     if (permute_data) {
       show_relevant_vars <- FALSE
-    } else
+    } else {
       show_relevant_vars <- show_relevant_vars_default
-
-    # -----------------------------------------------------------------------------
-    # 6.1. DATA PREPARATION
-    # -----------------------------------------------------------------------------
-    message(sprintf("  Preparing data (permute=%s, controls_only=%s)...", permute_data, controls_only))
-
+    }
+    
+    message(sprintf(
+      "  Preparing data (permute=%s, sample_group=%s)...",
+      permute_data, sample_group
+    ))
+    
     # Load data
     lipid_profiles <- read.csv("/home/joern/Aktuell/RheumaMetabolomicsFFM/DataSetPublished/PsA_lipids_BC.csv", row.names = 1)
     lipid_metadata <- read.csv("/home/joern/Aktuell/RheumaMetabolomicsFFM/DataSetPublished/PsA_classes.csv", row.names = 1)
-
+    
     table(lipid_metadata$Sampling_date)
-
-    # Extract processing month and remove sampling date (because unsuited case numbers per unique class)
+    
+    # Extract processing month and remove sampling date
     lipid_metadata$Month <- format(
       as.Date(lipid_metadata$Sampling_date, format = "%m/%d/%Y"), "%B"
     )
     lipid_metadata <- lipid_metadata[!names(lipid_metadata) %in% c("Sampling_date")]
-
-
-    # Filter to controls only (if enabled)
-    if (controls_only) {
-      control_lab_dates <- read.csv("/home/joern/Aktuell/RheumaMetabolomicsFFM/09Originale/Controls_Lab_Dates.csv", row.names = 2, stringsAsFactors = FALSE)
+    
+    # Filter samples by group
+    if (sample_group %in% c("controls_only", "patients_only")) {
+      control_lab_dates <- read.csv(
+        "/home/joern/Aktuell/RheumaMetabolomicsFFM/09Originale/Controls_Lab_Dates.csv",
+        row.names = 2, stringsAsFactors = FALSE
+      )
       control_ids <- rownames(control_lab_dates)
-      lipid_profiles <- lipid_profiles[rownames(lipid_profiles) %in% control_ids,]
-      lipid_metadata <- lipid_metadata[rownames(lipid_metadata) %in% control_ids,]
-      message(sprintf("    ✓ Filtered to %d control samples", nrow(lipid_profiles)))
+      
+      if (sample_group == "controls_only") {
+        lipid_profiles <- lipid_profiles[rownames(lipid_profiles) %in% control_ids, ]
+        lipid_metadata <- lipid_metadata[rownames(lipid_metadata) %in% control_ids, ]
+        message(sprintf("    ✓ Filtered to %d control samples", nrow(lipid_profiles)))
+      }
+      
+      if (sample_group == "patients_only") {
+        lipid_profiles <- lipid_profiles[!rownames(lipid_profiles) %in% control_ids, ]
+        lipid_metadata <- lipid_metadata[!rownames(lipid_metadata) %in% control_ids, ]
+        message(sprintf("    ✓ Filtered to %d patient samples", nrow(lipid_profiles)))
+      }
     }
-
+    
     # Permute features (null model)
     if (permute_data) {
       set.seed(SEED)
@@ -430,7 +442,12 @@ supervised_results <- lapply(c(FALSE, TRUE), function(permute_data) {
     # -----------------------------------------------------------------------------
     # 6.2.1. CREATE STABILITY HEATMAPS (RF_ONLY + optional SVM)
     # -----------------------------------------------------------------------------
-    prefix <- paste0(ifelse(permute_data, "permuted", "real"), "_", ifelse(controls_only, "controls", "all"))
+    prefix <- paste0(
+      ifelse(permute_data, "permuted", "real"),
+      "_",
+      sample_group
+    )
+    
     target_heatmaps <- list()
 
     for (target_name in names(results$rf_assignments)) {
@@ -572,8 +589,8 @@ supervised_results <- lapply(c(FALSE, TRUE), function(permute_data) {
       mutate(top_vars_wrapped = trimws(gsub(",\\s*NA", "", top_vars_wrapped))) %>%
       select(Target, Model, top_vars_wrapped)
 
-    ann_rf <- top_vars_annotated_rf %>%
-      mutate(Model = "RandomForest") %>%
+    ann_svm <- top_vars_annotated_svm %>%
+      mutate(Model = "SVM") %>%
       mutate(top_vars_wrapped = trimws(gsub(",\\s*NA", "", top_vars_wrapped))) %>%
       select(Target, Model, top_vars_wrapped)
 
@@ -610,74 +627,106 @@ supervised_results <- lapply(c(FALSE, TRUE), function(permute_data) {
       plot_df <- plot_df[plot_df$Model == "RandomForest",]
     }
 
-    # Create secondary axis mapping (Target_ordered -> top_vars_wrapped)
-    # First, get one annotation per Target_ordered (prefer non-NA if duplicates)
-    sec_mapping <- plot_df %>%
-      arrange(Target_ordered) %>%
-      group_by(Target_ordered) %>%
-      summarise(
-        top_vars_wrapped = dplyr::first(na.omit(top_vars_wrapped)),
-        .groups = "drop"
-      )
+    # Build separate plots for RF and SVM
+    plot_list <- list()
 
-    # Ensure vectors for primary and secondary axis labels match factor levels
-    target_levels <- levels(plot_df$Target_ordered)
+    for (model_name in c("RandomForest", "SVM")) {
+      # Filter data for this model
+      model_df <- plot_df %>% filter(Model == model_name)
 
-    # Primary axis labels: show the Target names themselves
-    primary_labels <- setNames(as.character(target_levels), target_levels)
+      if (nrow(model_df) == 0) next
 
-    # Secondary axis labels: same length as target_levels, NA where no annotation
-    sec_labels <- setNames(
-      rep(NA_character_, length(target_levels)),
-      target_levels
-    )
-    sec_labels[as.character(sec_mapping$Target_ordered)] <- sec_mapping$top_vars_wrapped
+      # Reorder factor levels based on this model's data only
+      model_df <- model_df %>%
+        mutate(Target_ordered = factor(Target, levels = unique(Target[order(sort_key)])))
 
-    # Build plot
-    p <- ggplot(plot_df, aes(x = Target_ordered, y = Median)) +
-      geom_hline(yintercept = 0.5, color = "salmon",
-                 linetype = "dashed", linewidth = 0.8, alpha = 0.7) +
-      geom_text(aes(y = -0.05, label = n_label),
-                hjust = 1, size = 3, fontface = "bold", color = "black") +
-      geom_rect(aes(xmin = as.numeric(Target_ordered) - 0.4,
-                    xmax = as.numeric(Target_ordered) + 0.4,
-                    ymin = CI_lower, ymax = CI_upper),
-                fill = "cornsilk3", color = "black",
-                alpha = 0.7, linewidth = 0.1) +
-      facet_wrap(Model ~ ., scales = "free_y") +
-      geom_segment(aes(x = as.numeric(Target_ordered) - 0.35,
-                       xend = as.numeric(Target_ordered) + 0.35,
-                       y = Median, yend = Median),
-                   linewidth = 1.4, alpha = 1) +
-      coord_flip(ylim = c(-0.12, 1.05)) +
-      labs(
-        x = "Metadata target",
-        y = "Balanced accuracy",
-        title = sprintf(
-          "Classification Performance (%s, %s, n=%d)",
-          ifelse(permute_data, "permuted", "real"),
-          ifelse(controls_only, "controls", "all cases"),
-          nrow(lipid_profiles_for_classification)
+      # Get target levels for this model
+      target_levels <- levels(model_df$Target_ordered)
+      primary_labels <- setNames(as.character(target_levels), target_levels)
+
+      # Build base plot
+      p_model <- ggplot(model_df, aes(x = Target_ordered, y = Median)) +
+        geom_hline(yintercept = 0.5, color = "salmon",
+                   linetype = "dashed", linewidth = 0.8, alpha = 0.7) +
+        geom_text(aes(y = -0.05, label = n_label),
+                  hjust = 1, size = 3, fontface = "bold", color = "black") +
+        geom_rect(aes(xmin = as.numeric(Target_ordered) - 0.4,
+                      xmax = as.numeric(Target_ordered) + 0.4,
+                      ymin = CI_lower, ymax = CI_upper),
+                  fill = "cornsilk3", color = "black",
+                  alpha = 0.7, linewidth = 0.1) +
+        geom_segment(aes(x = as.numeric(Target_ordered) - 0.35,
+                         xend = as.numeric(Target_ordered) + 0.35,
+                         y = Median, yend = Median),
+                     linewidth = 1.4, alpha = 1) +
+        coord_flip(ylim = c(-0.12, 1.05)) +
+        labs(
+          x = "Metadata target",
+          y = "Balanced accuracy",
+          title = model_name
+        ) +
+        theme_bw() +
+        theme(
+          axis.text.y.left = element_text(size = 7, color = "black"),
+          axis.text.y.right = element_text(size = 7, color = "darkblue", face = "plain"),
+          axis.title.y.right = element_text(color = "darkblue"),
+          legend.position = "top",
+          plot.margin = ggplot2::margin(l = 60, r = 80, t = 10, b = 10, unit = "pt")
         )
-      ) +
-      theme_bw() +
-      theme(
-        axis.text.y.left = element_text(size = 7, color = "black"),
-        axis.text.y.right = element_text(size = 7, color = "darkblue", face = "plain"),
-        axis.title.y.right = element_text(color = "darkblue"),
-        legend.position = "top",
-        strip.background = element_rect(fill = "cornsilk"),
-        strip.text = element_text(colour = "black"),
-        plot.margin = ggplot2::margin(l = 60, r = 80, t = 10, b = 10, unit = "pt")
-      )
 
-    if (show_relevant_vars)
-      p <- p +
-      scale_x_discrete(
-        breaks = target_levels,
-        labels = primary_labels, # left axis (targets)
-        sec.axis = dup_axis(labels = sec_labels, name = "Ten most important variables for classifictaion") # right axis (wrapped top vars)
+      # Add secondary axis with top variables if requested
+      if (show_relevant_vars) {
+        # Create secondary axis labels: show "Omitted" for failed, actual vars for successful, NA otherwise
+        sec_labels <- setNames(rep(NA_character_, length(target_levels)), target_levels)
+
+        for (i in seq_along(target_levels)) {
+          target_val <- target_levels[i]
+          row_data <- model_df %>% filter(Target_ordered == target_val)
+          if (nrow(row_data) > 0) {
+            if (!is.na(row_data$top_vars_wrapped[1])) {
+              sec_labels[target_val] <- row_data$top_vars_wrapped[1]
+            }
+          }
+        }
+
+        p_model <- p_model +
+          scale_x_discrete(
+            breaks = target_levels,
+            labels = primary_labels,
+            sec.axis = dup_axis(labels = sec_labels,
+                                name = "Ten most important variables for classification")
+          )
+      }
+
+      plot_list[[model_name]] <- p_model
+    }
+
+    # Combine plots
+    if (RF_only_plotted) {
+      p <- plot_list[["RandomForest"]]
+    } else {
+      # Create title plot
+      title_text <- sprintf("Classification Performance (%s, %s, n=%d)",
+                            ifelse(permute_data, "permuted", "real"), sample_group,
+                            nrow(lipid_profiles_for_classification))
+      title_plot <- cowplot::ggdraw() +
+        cowplot::draw_label(title_text, size = 14, fontface = "bold")
+
+      # Combine title and plots
+      p <- cowplot::plot_grid(
+        title_plot,
+        cowplot::plot_grid(
+          plotlist = plot_list,
+          ncol = 2,
+          labels = NULL,
+          align = "h",
+          axis = "tb",
+          rel_widths = c(1, 1)
+        ),
+        ncol = 1,
+        rel_heights = c(0.05, 1)
       )
+    }
 
     print(p)
 

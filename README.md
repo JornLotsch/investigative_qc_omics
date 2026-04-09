@@ -172,8 +172,11 @@ in the paper.
 
 **`lipid_case_data_run.R`**: Case study on real lipidomics data (psoriatic arthritis
 patients versus controls) demonstrating detection of a hidden batch effect that survived
-all standard quality control procedures. Reproduces the primary case study described in
-the paper.
+all standard quality control procedures. Performs supervised classification across three
+sample stratifications (all samples, controls only, patients only) using both real and
+permuted data (6 combinations total), testing whether technical artifacts are consistent
+across subgroups or specific to the full cohort. Reproduces the primary case study
+described in the paper.
 
 **`lipid_validation_data_run.R`**: Validation pipeline testing framework sensitivity
 to batch effects of graded magnitude using simulated technical batches on a
@@ -215,7 +218,7 @@ CC-BY 4.0
 
 If you use this code, concept, or framework in your work, please cite:
 
-Lötsch J, Hahnefeld L, Geisslinger G, Himmelspach A, and Kringel D. 
-A computational investigative quality control framework for omics detecting hidden batch artifacts beyond the analytical laboratory. 2026 (in preparation).
+Lötsch J, Hahnefeld L, ..., Geisslinger G, Himmelspach A, and Kringel D. 
+Metadata-driven machine learning exposes preanalytical batch arti-facts that mimic biological discovery in lipidomics. 2026 (in preparation).
 
 
