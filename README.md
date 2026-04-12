@@ -219,6 +219,6 @@ CC-BY 4.0
 If you use this code, concept, or framework in your work, please cite:
 
 Lötsch J, ..., Himmelspach A, and Kringel D. 
-Investigative data science closes a structural gap in omics quality control by detecting preanalytical artifacts beyond laboratory reach. 2026 (in preparation).
+Investigative data science addresses a structural omics quality control gap across the sample-to-dataset research chain. 2026 (in preparation).
 
 
