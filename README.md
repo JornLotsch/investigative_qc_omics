@@ -218,7 +218,7 @@ CC-BY 4.0
 
 If you use this code, concept, or framework in your work, please cite:
 
-Lötsch J, Hahnefeld L, ..., Geisslinger G, Himmelspach A, and Kringel D. 
-Metadata-driven machine learning exposes preanalytical batch arti-facts that mimic biological discovery in lipidomics. 2026 (in preparation).
+Lötsch J, ..., Himmelspach A, and Kringel D. 
+Investigative data science closes a structural gap in omics quality control by detecting preanalytical artifacts beyond laboratory reach. 2026 (in preparation).
 
 
