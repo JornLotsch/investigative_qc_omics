@@ -66,6 +66,6 @@ CC-BY 4.0
 If you use this code, concept, or framework in your work, please cite:
 
 Lötsch J, Geisslinger G, Himmelspach A, and Kringel D. 
-Investigative data science addresses a structural omics quality control gap across the sample-to-dataset research chain. Brief Bioinform 2026 (in revision).
+Investigative data science closes hidden gaps in omics quality assur-ance across the sample-to-dataset chain. Brief Bioinform 2026 (in revision).
 
 
