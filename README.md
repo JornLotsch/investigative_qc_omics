@@ -1,8 +1,9 @@
 # Investigative QC Omics
 
-## A computational investigative quality control framework for omics detecting procedural errors in the data-to-analysis workflow
+## Investigative data science closes hidden gaps in omics quality assur-ance across the sample-to-dataset chain
 
-This repository provides R code for an **investigative QC framework** that detects data structure inconsistent with the study hypothesis, including anomalies arising from procedural errors such as data handover mistakes. The method combines UMAP projection, Ward hierarchical clustering, Voronoi visualization, and supervised random forest classification to test whether data structure reflects biological signals or unexpected technical factors.
+
+"This repository provides R code for an **investigative data science framework** that closes hidden gaps in omics quality assurance across the sample-to-dataset chain. It detects data structure inconsistent with the study hypothesis, including anomalies arising from procedural errors such as data handover mistakes, that are invisible to laboratory-scoped quality control. The framework operates as a conceptually distinct complement to established omics QC protocols, assigning the data scientist responsibility for a distinct quality assurance stage beyond the reach of laboratory procedures. The method combines unsupervised nonlinear projection (UMAP), Ward hierarchical clustering, Voronoi visualization, and supervised random forest and SVM classification to test whether data structure reflects biological signals or unexpected technical factors.
 
 ### Workflow
 
