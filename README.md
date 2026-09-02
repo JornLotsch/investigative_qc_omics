@@ -55,7 +55,7 @@ See `example_run.R` for a complete working example.
 
 All required packages are automatically installed and loaded by the code.
 
-**Key packages**: `umap`, `ggplot2`, `ggrepel`, `deldir`, `caret`, `randomForest`, `parallel`, `pbmcapply`, `cABCanalysis`
+**Key packages**: `umap`, `ggplot2`, `ggrepel`, `deldir`, `caret`, `randomForest`, `parallel`, `pbmcapply`, `ABCanalysis`, `cABCanalysis`
 
 ## License
 
