@@ -1,0 +1,9 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: Lotsch
+  given-names: Jorn
+orcid: https://orcid.org/0000-0002-5818-6958
+title:JornLotsch/investigative_qc_omics: Investigative data science addresses hidden gaps in omics quality assurance across the sample-to-dataset chain: R code
+version: investigative_qc_omics_release
+date-released: 2026-09-02
