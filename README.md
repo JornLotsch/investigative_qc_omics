@@ -1,6 +1,6 @@
 # Investigative QC Omics
 
-## Investigative data science closes hidden gaps in omics quality assur-ance across the sample-to-dataset chain
+## Investigative data science addresses hidden gaps in omics quality assur-ance across the sample-to-dataset chain
 
 
 This repository provides R code for an **investigative data science framework** that closes hidden gaps in omics quality assurance across the sample-to-dataset chain. It detects data structure inconsistent with the study hypothesis, including anomalies arising from procedural errors such as data handover mistakes, that are invisible to laboratory-scoped quality control. The framework operates as a conceptually distinct complement to established omics QC protocols, assigning the data scientist responsibility for a distinct quality assurance stage beyond the reach of laboratory procedures. The method combines unsupervised nonlinear projection (UMAP), Ward hierarchical clustering, Voronoi visualization, and supervised random forest and SVM classification to test whether data structure reflects biological signals or unexpected technical factors.
@@ -66,6 +66,6 @@ CC-BY 4.0
 If you use this code, concept, or framework in your work, please cite:
 
 Lötsch J, Geisslinger G, Himmelspach A, and Kringel D. 
-Investigative data science closes hidden gaps in omics quality assur-ance across the sample-to-dataset chain. Brief Bioinform 2026 (in revision).
+Investigative data science addresses hidden gaps in omics quality assur-ance across the sample-to-dataset chain. Brief Bioinform 2026 (in minor revision).
 
 
